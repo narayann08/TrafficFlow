@@ -28,7 +28,8 @@ def predict():
     minute = int(parts[1])
 
     day = le_day.transform([day_label])[0]
-    X   = [[hour, minute, day]]
+    import pandas as pd
+    X   = pd.DataFrame([[hour, minute, day]], columns=["hour", "minute", "day"])
 
     def predict_label(model):
         return le_traffic.inverse_transform(model.predict(X))[0]

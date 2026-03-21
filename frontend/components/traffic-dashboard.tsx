@@ -176,6 +176,12 @@ export function TrafficDashboard() {
       });
       const data = await res.json();
 
+      if (data.error || (!data.traffic_level && !data.knn && !data.rf)) {
+        alert("The Machine Learning API is currently waking up from sleep mode (or encountered an error). Please wait 30 seconds and try predicting again!");
+        setLoading(false);
+        return;
+      }
+
       const formatLvl = (lvl: string) => {
         if (!lvl) return "Normal";
         return lvl.charAt(0).toUpperCase() + lvl.slice(1);
