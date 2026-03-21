@@ -735,6 +735,24 @@ export function TrafficDashboard() {
                                 <PolarGrid stroke="#262626" />
                                 <PolarAngleAxis dataKey="metric" tick={{ fill: "#a3a3a3", fontSize: 12 }} />
                                 <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: "#a3a3a3", fontSize: 10 }} />
+                                <Tooltip
+                                  cursor={false}
+                                  content={({ active, payload, label }) => {
+                                    if (active && payload && payload.length) {
+                                      return (
+                                        <div className="bg-card border border-border rounded-lg px-4 py-3 shadow-xl">
+                                          <p className="font-semibold mb-2 text-foreground">{label}</p>
+                                          {payload.map((item, i) => (
+                                            <p key={i} className="text-sm font-medium" style={{ color: item.color }}>
+                                              {item.name}: {item.value}%
+                                            </p>
+                                          ))}
+                                        </div>
+                                      )
+                                    }
+                                    return null
+                                  }}
+                                />
                                 <Radar
                                   name="KNN"
                                   dataKey="knn"
