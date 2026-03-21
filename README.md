@@ -1,4 +1,4 @@
-# TrafficFlow - AI-Powered Traffic Prediction System
+# TrafficFlow - ML-Powered Traffic Prediction System
 
 TrafficFlow is a modern, full-stack web application designed to locally predict real-time traffic levels (Heavy, High, Normal, Low) utilizing Machine Learning algorithms. The system relies on a seamless pipeline integrating a Next.js Frontend dashboard, an Express Node.js Backend router, and a Python Scikit-Learn prediction engine running on a Flask API.
 
