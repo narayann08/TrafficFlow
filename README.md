@@ -69,35 +69,3 @@ Once all 3 terminals are actively running, open your browser and navigate to the
 Select a time, day, and ML algorithm in the interface, and hit "Run Prediction" to see the full-stack architecture query the live model! Or select "Compare Both" to graph K-Nearest-Neighbors vs. Random Forest simultaneously.
 
 
-
-
-# ML
-cd ml
-pip install pandas scikit-learn flask flask-cors joblib
-python app.py
-
-cd ml
-python app.py
-
-
-
-# NodeJS
-cd backend
-npm install
-npm run dev
-# Note: If nodemon is not installed, use: node src/server.js
-
-cd backend
-npm run dev
-
-
-
-
-# NextJS
-cd frontend
-npm install
-npx next dev -p 3001
-
-cd frontend
-npx next dev -p 3001
-
