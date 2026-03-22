@@ -256,17 +256,12 @@ export function TrafficDashboard() {
         lastError = err.message || JSON.stringify(err);
         setLoadingText(`Waiting for Server... (Attempt ${attempts + 1}/${maxAttempts})`);
 
-        // Bypass Vercel's 10s timeout by making the browser wait out the Render boot-cycle directly
+        // Backend Auto-Deploy is OFF so we cannot fetch /api/wakeup! 
+        // Hardcoding the ML API URL to bypass Vercel serverless timeouts directly in the browser.
         try {
-          const wakeupRes = await fetch(`${apiUrl}/api/wakeup`);
-          if (wakeupRes.ok) {
-            const wakeupData = await wakeupRes.json();
-            if (wakeupData.ml_api_url && wakeupData.ml_api_url !== "http://127.0.0.1:5000") {
-              setLoadingText(`Waking up ML Models directly... This usually takes ~60 seconds.`);
-              // This direct request hangs up to 100 seconds while the Python API boots, keeping the Wake sequence alive!
-              await fetch(`${wakeupData.ml_api_url}/metrics`, { mode: 'no-cors' }).catch(() => { });
-            }
-          }
+          const mlApiUrl = "https://traffic-ml-api-a05w.onrender.com";
+          setLoadingText(`Waking up ML Models directly... This usually takes ~60 seconds.`);
+          await fetch(`${mlApiUrl}/?t=${Date.now()}`, { mode: 'no-cors' }).catch(() => { });
         } catch (e) { }
 
         attempts++;
