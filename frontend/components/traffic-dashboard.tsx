@@ -142,6 +142,7 @@ export function TrafficDashboard() {
   const [day, setDay] = useState("wednesday")
   const [algorithm, setAlgorithm] = useState<Algorithm>("both")
   const [loading, setLoading] = useState(false)
+  const [loadingText, setLoadingText] = useState("Processing...")
   const [result, setResult] = useState<ModelResult | null>(null)
   const [metrics, setMetrics] = useState<any>(null)
   const [error, setError] = useState<{title: string, message: string} | null>(null)
@@ -164,67 +165,89 @@ export function TrafficDashboard() {
 
   const handlePredict = async () => {
     setLoading(true)
+    setLoadingText("Processing...")
     setResult(null)
     setError(null)
-    try {
-      const timeStr = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
-      const dayStr = day.charAt(0).toUpperCase() + day.slice(1);
+    
+    const timeStr = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
+    const dayStr = day.charAt(0).toUpperCase() + day.slice(1);
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-      const res = await fetch(`${apiUrl}/api/predict`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ time: timeStr, day: dayStr, algorithm })
-      });
-      const data = await res.json();
+    let success = false;
+    let attempts = 0;
+    const maxAttempts = 15; // 75 seconds total enough for Render to wake up!
 
-      if (data.error || (!data.traffic_level && !data.knn && !data.rf)) {
-        if (data.error && data.error.includes("failed to get prediction")) {
-          setError({
-            title: "API Offline or Waking Up",
-            message: "The Machine Learning API is unreachable. It might be taking a moment to wake up from sleep mode on the deployed server. Please wait about 30 to 60 seconds and try again!"
-          });
-        } else if (data.error) {
-          setError({
-            title: "API Waking Up",
-            message: "The Machine Learning API is currently waking up from sleep mode (or encountered an error). Please wait 30 seconds and try predicting again!"
-          });
-        } else {
+    while (!success && attempts < maxAttempts) {
+      try {
+        const res = await fetch(`${apiUrl}/api/predict`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ time: timeStr, day: dayStr, algorithm })
+        });
+        
+        if (!res.ok && res.status >= 500) {
+           throw new Error("Server Error " + res.status);
+        }
+        
+        const data = await res.json();
+
+        if (data.error) {
+          if (data.error.includes("failed to get prediction") || data.error.includes("offline")) {
+             setLoadingText(`Waking up ML Models... (Attempt ${attempts + 1}/${maxAttempts})`);
+             attempts++;
+             await new Promise(r => setTimeout(r, 5000));
+             continue;
+          } else {
+            setError({
+              title: "Prediction Error",
+              message: data.error
+            });
+            setLoading(false);
+            return;
+          }
+        }
+
+        if (!data.traffic_level && !data.knn && !data.rf) {
           setError({
             title: "Empty Response",
             message: "The prediction API returned an empty response. Please try again."
           });
+          setLoading(false);
+          return;
         }
-        setLoading(false);
-        return;
-      }
 
-      if (!data.traffic_level && !data.knn && !data.rf) {
-        alert("The prediction API returned an empty response.");
-        setLoading(false);
-        return;
-      }
+        const formatLvl = (lvl: string) => {
+          if (!lvl) return "Normal";
+          return lvl.charAt(0).toUpperCase() + lvl.slice(1);
+        }
 
-      const formatLvl = (lvl: string) => {
-        if (!lvl) return "Normal";
-        return lvl.charAt(0).toUpperCase() + lvl.slice(1);
-      }
+        const knnAcc = metrics?.knn?.accuracy ? Math.round(metrics.knn.accuracy * 100) : 85;
+        const rfAcc = metrics?.rf?.accuracy ? Math.round(metrics.rf.accuracy * 100) : 92;
 
-      const knnAcc = metrics?.knn?.accuracy ? Math.round(metrics.knn.accuracy * 100) : 85;
-      const rfAcc = metrics?.rf?.accuracy ? Math.round(metrics.rf.accuracy * 100) : 92;
-
-      let predictionResult: ModelResult = {};
-      if (algorithm === "knn" && data.traffic_level) {
-        predictionResult.knn = { level: formatLvl(data.traffic_level), accuracy: knnAcc };
-      } else if (algorithm === "rf" && data.traffic_level) {
-        predictionResult.rf = { level: formatLvl(data.traffic_level), accuracy: rfAcc };
-      } else {
-        predictionResult.knn = { level: formatLvl(data.knn), accuracy: knnAcc };
-        predictionResult.rf = { level: formatLvl(data.rf), accuracy: rfAcc };
+        let predictionResult: ModelResult = {};
+        if (algorithm === "knn" && data.traffic_level) {
+          predictionResult.knn = { level: formatLvl(data.traffic_level), accuracy: knnAcc };
+        } else if (algorithm === "rf" && data.traffic_level) {
+          predictionResult.rf = { level: formatLvl(data.traffic_level), accuracy: rfAcc };
+        } else {
+          predictionResult.knn = { level: formatLvl(data.knn), accuracy: knnAcc };
+          predictionResult.rf = { level: formatLvl(data.rf), accuracy: rfAcc };
+        }
+        setResult(predictionResult);
+        success = true;
+      } catch (err) {
+        console.error("Fetch attempt failed:", err);
+        setLoadingText(`Waiting for Server... (Attempt ${attempts + 1}/${maxAttempts})`);
+        attempts++;
+        await new Promise(r => setTimeout(r, 5000));
       }
-      setResult(predictionResult);
-    } catch (err) {
-      console.error(err);
+    }
+    
+    if (!success) {
+      setError({
+        title: "API Timeout",
+        message: "The Machine Learning API failed to wake up or respond in time. Please check your deployment logs or manually refresh and try again."
+      });
     }
     setLoading(false)
   }
@@ -556,7 +579,7 @@ export function TrafficDashboard() {
                         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                         className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"
                       />
-                      Processing...
+                      {loadingText.includes("Waking") || loadingText.includes("Waiting") ? "Waking API..." : "Processing..."}
                     </>
                   ) : (
                     <>
@@ -640,9 +663,13 @@ export function TrafficDashboard() {
                           <Cpu className="w-8 h-8 text-yellow-500" />
                         </div>
                       </div>
-                      <h3 className="text-lg font-semibold mb-2 text-foreground">Analyzing Traffic Patterns</h3>
+                      <h3 className="text-lg font-semibold mb-2 text-foreground">
+                        {loadingText.includes("Waking") || loadingText.includes("Waiting") ? "Waking up ML Models" : "Analyzing Traffic Patterns"}
+                      </h3>
                       <p className="text-sm text-muted-foreground">
-                        Processing data with {algorithm === "both" ? "KNN & Random Forest" : algorithm === "knn" ? "K-Nearest Neighbors" : "Random Forest"}...
+                        {loadingText === "Processing..." 
+                          ? `Processing data with ${algorithm === "both" ? "KNN & Random Forest" : algorithm === "knn" ? "K-Nearest Neighbors" : "Random Forest"}...` 
+                          : loadingText}
                       </p>
                     </div>
                   </CardContent>
