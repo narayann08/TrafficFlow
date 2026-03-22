@@ -144,6 +144,7 @@ export function TrafficDashboard() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<ModelResult | null>(null)
   const [metrics, setMetrics] = useState<any>(null)
+  const [error, setError] = useState<{title: string, message: string} | null>(null)
 
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
@@ -164,6 +165,7 @@ export function TrafficDashboard() {
   const handlePredict = async () => {
     setLoading(true)
     setResult(null)
+    setError(null)
     try {
       const timeStr = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
       const dayStr = day.charAt(0).toUpperCase() + day.slice(1);
@@ -176,11 +178,22 @@ export function TrafficDashboard() {
       });
       const data = await res.json();
 
-      if (data.error) {
-        if (data.error.includes("failed to get prediction")) {
-          alert("The Python Machine Learning API is offline or unreachable. If testing locally, ensure you have started 'python app.py'.");
+      if (data.error || (!data.traffic_level && !data.knn && !data.rf)) {
+        if (data.error && data.error.includes("failed to get prediction")) {
+          setError({
+            title: "API Offline or Unreachable",
+            message: "The Python Machine Learning API is currently offline. If you're testing locally, ensure you've started the server using 'python app.py'."
+          });
+        } else if (data.error) {
+          setError({
+            title: "API Waking Up",
+            message: "The Machine Learning API is currently waking up from sleep mode (or encountered an error). Please wait 30 seconds and try predicting again!"
+          });
         } else {
-          alert("The Machine Learning API is currently waking up from sleep mode (or encountered an error). Please wait 30 seconds and try predicting again!");
+          setError({
+            title: "Empty Response",
+            message: "The prediction API returned an empty response. Please try again."
+          });
         }
         setLoading(false);
         return;
@@ -558,7 +571,7 @@ export function TrafficDashboard() {
 
           {/* Results Section */}
           <AnimatePresence mode="wait">
-            {!result && !loading && (
+            {!result && !loading && !error && (
               <motion.div
                 key="empty"
                 initial={{ opacity: 0 }}
@@ -575,6 +588,32 @@ export function TrafficDashboard() {
                       <p className="text-sm text-muted-foreground max-w-sm">
                         Configure your time, day, and model preferences above, then click &quot;Run Prediction&quot; to get traffic analysis.
                       </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {error && !loading && (
+              <motion.div
+                key="error"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <Card className="border-red-500/50 bg-red-500/10">
+                  <CardContent className="py-16">
+                    <div className="flex flex-col items-center justify-center text-center">
+                      <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mb-4">
+                        <Network className="w-8 h-8 text-red-500" />
+                      </div>
+                      <h3 className="text-lg font-semibold mb-2 text-foreground">{error.title}</h3>
+                      <p className="text-sm text-muted-foreground max-w-sm mb-6">
+                        {error.message}
+                      </p>
+                      <Button onClick={() => setError(null)} variant="outline" className="border-red-500/50 text-red-500 hover:bg-red-500/10">
+                        Dismiss
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
