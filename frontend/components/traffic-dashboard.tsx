@@ -218,13 +218,27 @@ export function TrafficDashboard() {
           return;
         }
 
+        let currentMetrics = metrics;
+        if (!currentMetrics || currentMetrics.error || !currentMetrics.knn) {
+           try {
+              const metricsRes = await fetch(`${apiUrl}/api/metrics`);
+              if (metricsRes.ok) {
+                 const metricsData = await metricsRes.json();
+                 if (!metricsData.error && metricsData.knn) {
+                     setMetrics(metricsData);
+                     currentMetrics = metricsData;
+                 }
+              }
+           } catch(e) {}
+        }
+
         const formatLvl = (lvl: string) => {
           if (!lvl) return "Normal";
           return lvl.charAt(0).toUpperCase() + lvl.slice(1);
         }
 
-        const knnAcc = metrics?.knn?.accuracy ? Math.round(metrics.knn.accuracy * 100) : 85;
-        const rfAcc = metrics?.rf?.accuracy ? Math.round(metrics.rf.accuracy * 100) : 92;
+        const knnAcc = currentMetrics?.knn?.accuracy ? Math.round(currentMetrics.knn.accuracy * 100) : 85;
+        const rfAcc = currentMetrics?.rf?.accuracy ? Math.round(currentMetrics.rf.accuracy * 100) : 92;
 
         let predictionResult: ModelResult = {};
         if (algorithm === "knn" && data.traffic_level) {
