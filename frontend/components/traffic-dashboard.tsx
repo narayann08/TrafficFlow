@@ -176,8 +176,18 @@ export function TrafficDashboard() {
       });
       const data = await res.json();
 
-      if (data.error || (!data.traffic_level && !data.knn && !data.rf)) {
-        alert("The Machine Learning API is currently waking up from sleep mode (or encountered an error). Please wait 30 seconds and try predicting again!");
+      if (data.error) {
+        if (data.error.includes("failed to get prediction")) {
+          alert("The Python Machine Learning API is offline or unreachable. If testing locally, ensure you have started 'python app.py'.");
+        } else {
+          alert("The Machine Learning API is currently waking up from sleep mode (or encountered an error). Please wait 30 seconds and try predicting again!");
+        }
+        setLoading(false);
+        return;
+      }
+
+      if (!data.traffic_level && !data.knn && !data.rf) {
+        alert("The prediction API returned an empty response.");
         setLoading(false);
         return;
       }
