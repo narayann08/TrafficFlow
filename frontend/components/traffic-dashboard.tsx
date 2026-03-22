@@ -145,7 +145,7 @@ export function TrafficDashboard() {
   const [loadingText, setLoadingText] = useState("Processing...")
   const [result, setResult] = useState<ModelResult | null>(null)
   const [metrics, setMetrics] = useState<any>(null)
-  const [error, setError] = useState<{title: string, message: string} | null>(null)
+  const [error, setError] = useState<{ title: string, message: string } | null>(null)
 
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
@@ -168,7 +168,7 @@ export function TrafficDashboard() {
     setLoadingText("Processing...")
     setResult(null)
     setError(null)
-    
+
     const timeStr = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
     const dayStr = day.charAt(0).toUpperCase() + day.slice(1);
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
@@ -185,20 +185,20 @@ export function TrafficDashboard() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ time: timeStr, day: dayStr, algorithm })
         });
-        
+
         if (!res.ok && res.status >= 500) {
-           throw new Error("Server Error " + res.status);
+          throw new Error("Server Error " + res.status);
         }
-        
+
         const data = await res.json();
 
         if (data.error) {
           if (data.error.includes("failed to get prediction") || data.error.includes("offline")) {
-             lastError = data.error;
-             setLoadingText(`Waking up ML Models... (Attempt ${attempts + 1}/${maxAttempts})`);
-             attempts++;
-             await new Promise(r => setTimeout(r, 5000));
-             continue;
+            lastError = data.error;
+            setLoadingText(`Waking up ML Models... (Attempt ${attempts + 1}/${maxAttempts})`);
+            attempts++;
+            await new Promise(r => setTimeout(r, 5000));
+            continue;
           } else {
             setError({
               title: "Prediction Error",
@@ -220,16 +220,16 @@ export function TrafficDashboard() {
 
         let currentMetrics = metrics;
         if (!currentMetrics || currentMetrics.error || !currentMetrics.knn) {
-           try {
-              const metricsRes = await fetch(`${apiUrl}/api/metrics`);
-              if (metricsRes.ok) {
-                 const metricsData = await metricsRes.json();
-                 if (!metricsData.error && metricsData.knn) {
-                     setMetrics(metricsData);
-                     currentMetrics = metricsData;
-                 }
+          try {
+            const metricsRes = await fetch(`${apiUrl}/api/metrics`);
+            if (metricsRes.ok) {
+              const metricsData = await metricsRes.json();
+              if (!metricsData.error && metricsData.knn) {
+                setMetrics(metricsData);
+                currentMetrics = metricsData;
               }
-           } catch(e) {}
+            }
+          } catch (e) { }
         }
 
         const formatLvl = (lvl: string) => {
@@ -258,22 +258,22 @@ export function TrafficDashboard() {
 
         // Bypass Vercel's 10s timeout by making the browser wait out the Render boot-cycle directly
         try {
-           const wakeupRes = await fetch(`${apiUrl}/api/wakeup`);
-           if (wakeupRes.ok) {
-              const wakeupData = await wakeupRes.json();
-              if (wakeupData.ml_api_url && wakeupData.ml_api_url !== "http://127.0.0.1:5000") {
-                  setLoadingText(`Waking up ML Models directly... This usually takes ~60 seconds.`);
-                  // This direct request hangs up to 100 seconds while the Python API boots, keeping the Wake sequence alive!
-                  await fetch(`${wakeupData.ml_api_url}/metrics`, { mode: 'no-cors' }).catch(() => {});
-              }
-           }
-        } catch(e) { }
+          const wakeupRes = await fetch(`${apiUrl}/api/wakeup`);
+          if (wakeupRes.ok) {
+            const wakeupData = await wakeupRes.json();
+            if (wakeupData.ml_api_url && wakeupData.ml_api_url !== "http://127.0.0.1:5000") {
+              setLoadingText(`Waking up ML Models directly... This usually takes ~60 seconds.`);
+              // This direct request hangs up to 100 seconds while the Python API boots, keeping the Wake sequence alive!
+              await fetch(`${wakeupData.ml_api_url}/metrics`, { mode: 'no-cors' }).catch(() => { });
+            }
+          }
+        } catch (e) { }
 
         attempts++;
         await new Promise(r => setTimeout(r, 5000));
       }
     }
-    
+
     if (!success) {
       setError({
         title: "API Timeout",
@@ -698,8 +698,8 @@ export function TrafficDashboard() {
                         {loadingText.includes("Waking") || loadingText.includes("Waiting") ? "Waking up ML Models" : "Analyzing Traffic Patterns"}
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        {loadingText === "Processing..." 
-                          ? `Processing data with ${algorithm === "both" ? "KNN & Random Forest" : algorithm === "knn" ? "K-Nearest Neighbors" : "Random Forest"}...` 
+                        {loadingText === "Processing..."
+                          ? `Processing data with ${algorithm === "both" ? "KNN & Random Forest" : algorithm === "knn" ? "K-Nearest Neighbors" : "Random Forest"}...`
                           : loadingText}
                       </p>
                     </div>
