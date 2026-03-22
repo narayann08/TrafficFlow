@@ -24,3 +24,7 @@ exports.getModelMetrics = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+exports.getWakeupUrl = (req, res) => {
+    res.json({ ml_api_url: process.env.ML_API_URL || "http://127.0.0.1:5000" });
+};

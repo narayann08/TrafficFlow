@@ -241,6 +241,20 @@ export function TrafficDashboard() {
         console.error("Fetch attempt failed:", err);
         lastError = err.message || JSON.stringify(err);
         setLoadingText(`Waiting for Server... (Attempt ${attempts + 1}/${maxAttempts})`);
+
+        // Bypass Vercel's 10s timeout by making the browser wait out the Render boot-cycle directly
+        try {
+           const wakeupRes = await fetch(`${apiUrl}/api/wakeup`);
+           if (wakeupRes.ok) {
+              const wakeupData = await wakeupRes.json();
+              if (wakeupData.ml_api_url && wakeupData.ml_api_url !== "http://127.0.0.1:5000") {
+                  setLoadingText(`Waking up ML Models directly... This usually takes ~60 seconds.`);
+                  // This direct request hangs up to 100 seconds while the Python API boots, keeping the Wake sequence alive!
+                  await fetch(`${wakeupData.ml_api_url}/metrics`, { mode: 'no-cors' }).catch(() => {});
+              }
+           }
+        } catch(e) { }
+
         attempts++;
         await new Promise(r => setTimeout(r, 5000));
       }
