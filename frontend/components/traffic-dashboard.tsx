@@ -175,7 +175,7 @@ export function TrafficDashboard() {
 
     let success = false;
     let attempts = 0;
-    const maxAttempts = 30; // 150 seconds total, free ML servers can take an enormous amount of time to load large models.
+    const maxAttempts = 100; // 500 seconds total, free ML servers can take an enormous amount of time to load large models.
     let lastError = "";
 
     while (!success && attempts < maxAttempts) {
