@@ -176,6 +176,7 @@ export function TrafficDashboard() {
     let success = false;
     let attempts = 0;
     const maxAttempts = 15; // 75 seconds total enough for Render to wake up!
+    let lastError = "";
 
     while (!success && attempts < maxAttempts) {
       try {
@@ -193,6 +194,7 @@ export function TrafficDashboard() {
 
         if (data.error) {
           if (data.error.includes("failed to get prediction") || data.error.includes("offline")) {
+             lastError = data.error;
              setLoadingText(`Waking up ML Models... (Attempt ${attempts + 1}/${maxAttempts})`);
              attempts++;
              await new Promise(r => setTimeout(r, 5000));
@@ -235,8 +237,9 @@ export function TrafficDashboard() {
         }
         setResult(predictionResult);
         success = true;
-      } catch (err) {
+      } catch (err: any) {
         console.error("Fetch attempt failed:", err);
+        lastError = err.message || JSON.stringify(err);
         setLoadingText(`Waiting for Server... (Attempt ${attempts + 1}/${maxAttempts})`);
         attempts++;
         await new Promise(r => setTimeout(r, 5000));
@@ -246,7 +249,7 @@ export function TrafficDashboard() {
     if (!success) {
       setError({
         title: "API Timeout",
-        message: "The Machine Learning API failed to wake up or respond in time. Please check your deployment logs or manually refresh and try again."
+        message: `The ML API failed to wake up or respond. Detailed Error: ${lastError}`
       });
     }
     setLoading(false)
