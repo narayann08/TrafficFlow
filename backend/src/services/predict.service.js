@@ -11,7 +11,7 @@ async function getPrediction(data, algorithm) {
         return response.data;
     } catch (error) {
         console.error("Python API Prediction Error:", error.message);
-        return { error: "Python API failed to get prediction" };
+        return { error: `Python API failed to get prediction. Attempted URL: ${BASE_URL}/predict` };
     }
 }
 
@@ -21,7 +21,7 @@ async function getMetrics() {
         return response.data;
     } catch (error) {
         console.error("Python API Metrics Error:", error.message);
-        return { error: "Python API failed to get metrics" };
+        return { error: `Python API failed to get metrics. Attempted URL: ${BASE_URL}/metrics` };
     }
 }
 
