@@ -181,8 +181,8 @@ export function TrafficDashboard() {
       if (data.error || (!data.traffic_level && !data.knn && !data.rf)) {
         if (data.error && data.error.includes("failed to get prediction")) {
           setError({
-            title: "API Offline or Unreachable",
-            message: "The Python Machine Learning API is currently offline. If you're testing locally, ensure you've started the server using 'python app.py'."
+            title: "API Offline or Waking Up",
+            message: "The Machine Learning API is unreachable. It might be taking a moment to wake up from sleep mode on the deployed server. Please wait about 30 to 60 seconds and try again!"
           });
         } else if (data.error) {
           setError({
